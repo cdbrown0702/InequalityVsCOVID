@@ -1,0 +1,168 @@
+---
+output: 
+  pdf_document:
+title: "The Impact of Inequality on Global Populations during the COVID-19 Pandemic"
+author: "Connor Brown"
+abstract: "This paper uses a global COVID-19 response survey in association with international inequality statistics to investigate how distribution of wealth has impacted the globe's reaction to a distressful period of loss, confusion and fear. Multivariate regressions between data collected from March 30 to May 20 of 2020 "
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+geometry: margin=1in
+fontfamily: mathpazo
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+# setting the default visibility of code chunks to FALSE
+library(knitr)
+opts_chunk$set(echo = FALSE)
+# load required packages
+library(haven)
+library(broom)
+library(tidyverse)
+
+data <- read.csv("InequalityCOVID.csv")
+```
+
+# Introduction
+
+The Coronavirus pandemic that traumatized the planet has had an immense effect on individuals and groups alike. Despite its havoc, worldwide issues, such as income inequality, still play a major role in the day-to-day lives of every nation's population.**
+
+# Methodology | Hypothesis
+
+My hypothesis is that there will be a negative relationship between a nation's income and its population's risk of infection, and a positive relationship between income and its population's proportions of isolation and medical facilitation. 
+
+# Data
+
+Data for this analysis are taken from two sources: The World Bank's indicators database, and the 2020 COVIDiSTRESS Global Survey from the COVIDiSTRESS consortium. Indicators from the World Bank each have their own spreadsheets, while the COVIDiSTRESS survey provided proportional data for each country in tabular format. Given the difficulty in acquiring inequality statistics for 2020, I am using GINI indices and GDP per Capita measurements from 2017. In addition, given the smaller number of respondent countries to the COVIDiSTRESS survey, only 31 countries total have valid data associated with these variables.  
+
+This analysis uses the following variables:
+
+GDP is GDP at the current value of USD. Data was for 197 countries, only 30 of which are used for this analysis. World Bank describes GDP as "the sum of gross value added by all resident producers in the economy, plus any product taxes and minus any subsidies not included in the value of the products." It is a conversion of domestic currencies to a value in current U.S. dollars. It is sourced from the World Bank's country departments and government statistical agencies.
+
+GINI is the Gini index of each country. Once again, data was for 197 countries, only 30 of which are used for this analysis. World Bank describes the Gini index as a measure of "the extent to which the distribution (or, in some cases, consumption expenditure) among individuals or households within an economy deviates from a perfectly equal distribution...0 represents perfect equality, while an index of 100 implies perfect inequality." It is also sourced from the World Bank's country departments and government statistical agencies.
+
+POP is the total population for each country, as of 2017. Of the 197 countries, only 30 are used. World Bank sourced this information from UN Population Division, including census reports and information from the US Census Bureau.
+
+PROP_Risk is the proportion of a country's respondents to the COVIDiSTRESS survey that responded "yes" to the question of whether or not they or their family members were at high risk. 39 countries responded with a total of 173,426 participants; only 30 countries' data was used in this analysis. This information is validated through several methods, including studies of extraversion, neuroticism, openness, etc.
+
+PROP_Medical is the proportion of a country's respondents to the survey that responded to the question of current isolation status as being "isolated in a medical facility or similar location." 
+
+PROP_Isolated is the proportion of a country's respondents to the survey that responded to the aforementioned question of current isolated status as being "isolated".
+
+Listed below are summaries and statistics of these variables.
+
+```{r}
+summary(data)
+```
+
+# Figure 1 [top] | Figure 2 [bottom]
+
+```{r}
+data %>%
+  ggplot(aes(x = GDP)) +
+  geom_histogram(color = "red", binwidth = 5000)
+
+data %>%
+  ggplot(aes(x = GINI)) +
+  geom_histogram(color = "blue", binwidth = 1)
+
+```
+
+Figure 1 shows the distribution of GDP, showing the major differences between the countries analyzed. Figure 2 shows the distribution of the GINI index, showing a non-normal distribution for the variable. While Figure 2 is left skewed, showing a stronger distribution towards less inequality in some countries, Figure 1 shows a potential limitation: an extreme outlier. This just so happens to be the United States, which has a far higher national income than the other 30 countries; this is a problem that is addressed within my results.
+
+# Figure 3
+
+```{r}
+data$GDPPC <- data$GDP / data$POP
+
+data %>%
+  ggplot(aes(x = GDPPC)) +
+  geom_histogram(color = "purple")
+```
+
+
+# Results
+
+Table 1, $PROP\_Risk=\beta_{0}+\beta_{1}GDP+\epsilon_{i}$
+
+```{r}
+model1 <- lm(data = data, formula = PROP_Risk ~ GDPPC)
+tidy(model1) %>% kable()
+summary(model1)
+```
+
+With a sample size of just 30 countries, the data at hand is quite picky and will be difficult to model. As GDP per capita in a nation increases by 1 dollar, there is an associated increase by .00000035 in the proportion of the population that is at risk. However, the very large p-value is far from statistically significant, with a standard error of .0000005. To justify this, the fact that this model accounts for a miniscule 1.8% of the variance says a lot about its applicability. 
+
+Table 2, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\epsilon_{i}$
+
+```{r}
+model2 <- lm(data = data, formula = PROP_Risk ~ log(GDPPC))
+tidy(model2) %>% kable()
+summary(model2)
+```
+
+Logging GDP has a strong effect on the model, indicating that a 1% increase in GDP is associated with a .022 increase in the percentage of those who have relatives at risk or risk themselves, with a standard error of ~.01. This model accounts for 13.8% of the variance; still not a great model, but it is definitely improved.
+
+# Figure 4
+
+```{r}
+model2_aug <- augment(model2, data = data)
+
+ggplot(data = model2_aug) +
+  geom_point(aes(x = GDPPC, y = PROP_Risk)) + geom_line(aes(x = GDPPC, y = .fitted), color = "red") + ggtitle("Infection Risk vs. GDP (per hundred million)")
+```
+
+When graphed, this model quickly shows that the aforementioned outlier skews any model, both visually and statistically.
+
+Table 3, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\epsilon_{i}$ without United States
+
+```{r}
+data_NoUS <- subset(data, COUNTRY != "United States")
+
+model3 <- lm(data = data_NoUS, formula = PROP_Risk ~ log(GDPPC))
+tidy(model3) %>% kable()
+summary(model3)
+```
+
+Out of curiosity, I looked to see if voiding the United States from the dataset would allow a more defined relationship to appear; conversely, it actually lowered the accountability of variation as well as raised the p-value. It is clear that the data is easier to explain with the outlier, and further work on the model can be done.
+
+Table 4, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+
+```{r}
+model4 <- lm(data = data, formula = PROP_Risk ~ log(GDPPC) + GINI)
+tidy(model4) %>% kable()
+summary(model4)
+```
+
+Table 4 shows a much more moderately useful model, which incorporates Gini index as a second factor into our predictor. By including this index, I've reduced the p-value to a much lower and far more significant value of ~.0007, and can use this model to account for more than 41% of the variance. This model shows a positive relationship between income inequality and the proportion of those at risk of infection. For every 1% increase in GDP, proportion is expected to increased by .018, while the a 1 unit increase in the Gini index increase infection risk by ~.007. Both of these coefficients are statistically significant, indicating that as income inequality increases (richer countries tending to have more), citizen's general risk for themselves and their families to infection of COVID-19 also increases.
+
+Table 5, $PROP_Medical=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+
+```{r}
+model5 <- lm(data = data, formula = PROP_Medical ~ log(GDPPC) + GINI)
+tidy(model5) %>% kable()
+summary(model5)
+```
+
+Table 5 shows an attempt at exploring another aspect of the survey: the proportions of nation's populations that are medically isolated, as explained by income inequality. This model indicates that for every increase in 1% of GDP, the proportion is expected to decrease by .00023, and for every 1 unit increase in the Gini index, it will increase by .000056. This model only accounts for a little over 9% of the variance. In this specific instance, with the data I have, it is clear that the variance in the proportion's cannot be explained in a statistically significant fashion. 
+
+Table 6, $PROP\_Isolated=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+
+```{r}
+model6 <- lm(data = data, formula = PROP_Isolated ~ log(GDPPC) + log(GINI))
+tidy(model6) %>% kable()
+summary(model6)
+```
+
+Finally, Table 6 shows another attempt at exploring further. I tried to use these statistics of income inequality to model the proportion of a population that was isolated; the best model of which ended up being that of logging both GDP and the Gini index. The model indicates that for every increase in 1% in both GDP and the Gini index, the proportion will increase by ~.32, with a standard error of ~.15. Despite this, the model itself is barely statistically significant, and only accounts for ~22.9% of the variance in the data.
+
+# Discussion | Conclusion
+
+This analysis attempted to cover three different major areas within COVID reactions. To start, I hypothesized that 
+
+# References
+
+World Bank, World Development Indicators. (2014). "GDP per capita (current US$)" [Data File]. Retrieved from https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?view=chart
+
+World Bank, World Development Indicators. (2014). "GINI index (World Bank estimate)" [Data File]. Retrieved from https://data.worldbank.org/indicator/SI.POV.GINI
+
+Yamada, Y., Ćepulić, DB., Coll-Martín, T. et al. COVIDiSTRESS Global Survey dataset on psychological and behavioural consequences of the COVID-19 outbreak. Sci Data 8, 3 (2021). https://doi.org/10.1038/s41597-020-00784-9
