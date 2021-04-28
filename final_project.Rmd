@@ -3,7 +3,7 @@ output:
   pdf_document:
 title: "The Impact of Inequality on Global Populations during the COVID-19 Pandemic"
 author: "Connor Brown"
-abstract: "This paper uses a global COVID-19 response survey in association with international inequality statistics to investigate how distribution of wealth has impacted the globe's reaction to a distressful period of loss, confusion and fear. Multivariate regressions between data collected from March 30 to May 20 of 2020 "
+abstract: "This paper uses a global COVID-19 response survey in association with international inequality statistics to investigate how distribution of wealth has impacted the globe's reaction to a distressful period of loss, confusion and fear. Multivariate regressions between data collected from March 30 to May 20 of 2020 * addmore "
 date: "`r format(Sys.time(), '%B %d, %Y')`"
 geometry: margin=1in
 fontfamily: mathpazo
@@ -24,11 +24,11 @@ data <- read.csv("InequalityCOVID.csv")
 
 # Introduction
 
-The Coronavirus pandemic that traumatized the planet has had an immense effect on individuals and groups alike. Despite its havoc, worldwide issues, such as income inequality, still play a major role in the day-to-day lives of every nation's population.**
+The Coronavirus pandemic that traumatized the planet has had an immense effect on individuals and groups alike. Despite its havoc, worldwide issues, such as income inequality, still play a major role in the day-to-day lives of every nation's population.* background knowledge here
 
 # Methodology | Hypothesis
 
-My hypothesis is that there will be a negative relationship between a nation's income and its population's risk of infection, and a positive relationship between income and its population's proportions of isolation and medical facilitation. 
+My hypothesis is that there will be a positive relationship between a nation's income and its population's risk of infection and between income and the population's proportions of both isolation and medical facilitation (separately). *explain why Using multiple regressions, both univariate and bivariate, I will explore these aspects of the pandemic and try to understand their association with income inequality. The independent variables; GDP, GDPC, and GINI, as described further below; will be used as predictors for  three specific areas of interest: PROP_Risk, PROP_Medical, and PROP_Isolated. As hypothesized, these independent variables, in conjunction, should produce results of positive associations. 
 
 # Data
 
@@ -40,7 +40,7 @@ GDP is GDP at the current value of USD. Data was for 197 countries, only 30 of w
 
 GINI is the Gini index of each country. Once again, data was for 197 countries, only 30 of which are used for this analysis. World Bank describes the Gini index as a measure of "the extent to which the distribution (or, in some cases, consumption expenditure) among individuals or households within an economy deviates from a perfectly equal distribution...0 represents perfect equality, while an index of 100 implies perfect inequality." It is also sourced from the World Bank's country departments and government statistical agencies.
 
-POP is the total population for each country, as of 2017. Of the 197 countries, only 30 are used. World Bank sourced this information from UN Population Division, including census reports and information from the US Census Bureau.
+POP is the total population for each country, as of 2017. Of the 197 countries, only 30 are used. World Bank sourced this information from UN Population Division, including census reports and information from the US Census Bureau. The population is used to calculate GDP per Capita
 
 PROP_Risk is the proportion of a country's respondents to the COVIDiSTRESS survey that responded "yes" to the question of whether or not they or their family members were at high risk. 39 countries responded with a total of 173,426 participants; only 30 countries' data was used in this analysis. This information is validated through several methods, including studies of extraversion, neuroticism, openness, etc.
 
@@ -48,22 +48,26 @@ PROP_Medical is the proportion of a country's respondents to the survey that res
 
 PROP_Isolated is the proportion of a country's respondents to the survey that responded to the aforementioned question of current isolated status as being "isolated".
 
-Listed below are summaries and statistics of these variables.
+GDPC is the GDP per Capita, calculated as the GDP column divided by the Population column. This is used as a more normalized representation of household income by country.
+
+Listed below are the summaries and statistics of these variables.
 
 ```{r}
+data$GDPC <- data$GDP / data$POP
+
 summary(data)
 ```
 
-# Figure 1 [top] | Figure 2 [bottom]
+# Figures 1 & 2
 
 ```{r}
 data %>%
-  ggplot(aes(x = GDP)) +
-  geom_histogram(color = "red", binwidth = 5000)
+  ggplot(aes(x = GDP / 100000000000)) +
+  geom_histogram(color = "red", binwidth = 10) + labs(x = "GDP (by hundred billions)") + ggtitle("National Income")
 
 data %>%
   ggplot(aes(x = GINI)) +
-  geom_histogram(color = "blue", binwidth = 1)
+  geom_histogram(color = "blue", binwidth = 1) +  ggtitle("GINI Index Distribution") + labs(x = "Gini Index")
 
 ```
 
@@ -72,35 +76,34 @@ Figure 1 shows the distribution of GDP, showing the major differences between th
 # Figure 3
 
 ```{r}
-data$GDPPC <- data$GDP / data$POP
-
 data %>%
-  ggplot(aes(x = GDPPC)) +
-  geom_histogram(color = "purple")
+  ggplot(aes(x = GDPC)) +
+  geom_histogram(color = "purple", binwidth = 5000) + ggtitle("National Income (per Capita)")
 ```
 
+Figure 3 shows the distribution of GDP per Capita, which is far more normalized and easier to follow than that of Figure 1. My hope is that this measure will prove to be easier to understand in future use.
 
 # Results
 
-Table 1, $PROP\_Risk=\beta_{0}+\beta_{1}GDP+\epsilon_{i}$
+Table 1, $PROP\_Risk=\beta_{0}+\beta_{1}GDPC+\epsilon_{i}$
 
 ```{r}
-model1 <- lm(data = data, formula = PROP_Risk ~ GDPPC)
+model1 <- lm(data = data, formula = PROP_Risk ~ GDPC)
 tidy(model1) %>% kable()
 summary(model1)
 ```
 
-With a sample size of just 30 countries, the data at hand is quite picky and will be difficult to model. As GDP per capita in a nation increases by 1 dollar, there is an associated increase by .00000035 in the proportion of the population that is at risk. However, the very large p-value is far from statistically significant, with a standard error of .0000005. To justify this, the fact that this model accounts for a miniscule 1.8% of the variance says a lot about its applicability. 
+With a sample size of just 30 countries, the data at hand is quite picky and will be difficult to model. As GDPC in a nation increases by 1 dollar, there is an associated increase by .00000018 in the proportion of the population that is at risk. However, the very large p-value is far from statistically significant, with an incredibly low standard error. To justify this, the fact that this model accounts for a miniscule .17% of the variance says a lot about its applicability. 
 
-Table 2, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\epsilon_{i}$
+Table 2, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDPC)+\epsilon_{i}$
 
 ```{r}
-model2 <- lm(data = data, formula = PROP_Risk ~ log(GDPPC))
+model2 <- lm(data = data, formula = PROP_Risk ~ log(GDPC))
 tidy(model2) %>% kable()
 summary(model2)
 ```
 
-Logging GDP has a strong effect on the model, indicating that a 1% increase in GDP is associated with a .022 increase in the percentage of those who have relatives at risk or risk themselves, with a standard error of ~.01. This model accounts for 13.8% of the variance; still not a great model, but it is definitely improved.
+Logging GDP has a strong effect on the model, indicating that a 1% increase in GDPC is associated with a .0226 increase in the percentage of those who have relatives at risk or risk themselves, with a standard error of ~.02. This model accounts for just 4.2% of the variance; still not a great model, but it is definitely improved.
 
 # Figure 4
 
@@ -108,57 +111,90 @@ Logging GDP has a strong effect on the model, indicating that a 1% increase in G
 model2_aug <- augment(model2, data = data)
 
 ggplot(data = model2_aug) +
-  geom_point(aes(x = GDPPC, y = PROP_Risk)) + geom_line(aes(x = GDPPC, y = .fitted), color = "red") + ggtitle("Infection Risk vs. GDP (per hundred million)")
+  geom_point(aes(x = GDPC, y = PROP_Risk)) + geom_line(aes(x = GDPC, y = .fitted), color = "red") + ggtitle("Infection Risk vs. GDPC")
 ```
 
-When graphed, this model quickly shows that the aforementioned outlier skews any model, both visually and statistically.
+When graphed, this model shows a model that struggles to fit the data, purely based on the spread of poorer countries and their different risks.
 
-Table 3, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\epsilon_{i}$ without United States
+Table 3, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\epsilon_{i}$
 
 ```{r}
-data_NoUS <- subset(data, COUNTRY != "United States")
-
-model3 <- lm(data = data_NoUS, formula = PROP_Risk ~ log(GDPPC))
+model3 <- lm(data = data, formula = PROP_Risk ~ log(GDP))
 tidy(model3) %>% kable()
 summary(model3)
 ```
 
-Out of curiosity, I looked to see if voiding the United States from the dataset would allow a more defined relationship to appear; conversely, it actually lowered the accountability of variation as well as raised the p-value. It is clear that the data is easier to explain with the outlier, and further work on the model can be done.
+For purposes of trying to improve these models, I took a look at the overall national income that was skewed based on population. Oddly enough, using the non-normalized GDP actually created a better model. This model states that a 1% increase in GDP will result in a .022 increase in risk, at just half the standard error. It also has a far smaller p-value and is able to account for almost 14% of the variance in our data. Because of this, I will be utilizing GDP as my measure of national income from now on. This improvement is also reflected in Figure 5, below.
 
-Table 4, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+# Figure 5
 
 ```{r}
-model4 <- lm(data = data, formula = PROP_Risk ~ log(GDPPC) + GINI)
+model3_aug <- augment(model3, data = data)
+
+ggplot(data = model3_aug) +
+  geom_point(aes(x = GDP, y = PROP_Risk)) + geom_line(aes(x = GDP, y = .fitted), color = "red") + ggtitle("Infection Risk Vs. Logged GDP")
+```
+
+Figure 5 shows a graph of the newly created, logged GDP model. The United States is comically outlying and appears to skew this model, however it may be necessary to its understanding.
+
+Table 4, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\epsilon_{i}$ without United States
+
+```{r}
+data_NoUS <- subset(data, COUNTRY != "United States")
+
+model4 <- lm(data = data_NoUS, formula = PROP_Risk ~ log(GDP))
 tidy(model4) %>% kable()
 summary(model4)
 ```
-
-Table 4 shows a much more moderately useful model, which incorporates Gini index as a second factor into our predictor. By including this index, I've reduced the p-value to a much lower and far more significant value of ~.0007, and can use this model to account for more than 41% of the variance. This model shows a positive relationship between income inequality and the proportion of those at risk of infection. For every 1% increase in GDP, proportion is expected to increased by .018, while the a 1 unit increase in the Gini index increase infection risk by ~.007. Both of these coefficients are statistically significant, indicating that as income inequality increases (richer countries tending to have more), citizen's general risk for themselves and their families to infection of COVID-19 also increases.
-
-Table 5, $PROP_Medical=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+# Figure 6
 
 ```{r}
-model5 <- lm(data = data, formula = PROP_Medical ~ log(GDPPC) + GINI)
+model4_aug <- augment(model4, data = data_NoUS)
+
+ggplot(data = model4_aug) +
+  geom_point(aes(x = GDP, y = PROP_Risk)) + geom_line(aes(x = GDP, y = .fitted), color = "red") + ggtitle("Infection Risk vs. GDP (excl. US)")
+```
+
+Out of curiosity, I looked to see if voiding the United States from the dataset would allow a more defined relationship to appear; conversely, it actually lowered the accountability of variation as well as raised the p-value. It is clear that the data is easier to explain with the outlier, and further work on the model can be done.
+
+Table 5, $PROP\_Risk=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+
+```{r}
+model5 <- lm(data = data, formula = PROP_Risk ~ log(GDP) + GINI)
 tidy(model5) %>% kable()
 summary(model5)
 ```
 
-Table 5 shows an attempt at exploring another aspect of the survey: the proportions of nation's populations that are medically isolated, as explained by income inequality. This model indicates that for every increase in 1% of GDP, the proportion is expected to decrease by .00023, and for every 1 unit increase in the Gini index, it will increase by .000056. This model only accounts for a little over 9% of the variance. In this specific instance, with the data I have, it is clear that the variance in the proportion's cannot be explained in a statistically significant fashion. 
+Table 5 shows a much more moderately useful model, which incorporates Gini index as a second factor into our predictor. By including this index, I've reduced the p-value to a much lower and far more significant value of ~.0007, and can use this model to account for more than 41% of the variance. This model shows a positive relationship between income inequality and the proportion of those at risk of infection. For every 1% increase in GDP, proportion is expected to increased by .018, while the a 1 unit increase in the Gini index increase infection risk by ~.007. Both of these coefficients are statistically significant, indicating that as income inequality increases (richer countries tending to have more), citizen's general risk for themselves and their families to infection of COVID-19 also increases.
 
-Table 6, $PROP\_Isolated=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}GINI+\epsilon_{i}$
+Table 6, $PROP_Medical=\beta_{0}+\beta_{1}log(GDPC)+\beta_{2}GINI+\epsilon_{i}$
 
 ```{r}
-model6 <- lm(data = data, formula = PROP_Isolated ~ log(GDPPC) + log(GINI))
+model6 <- lm(data = data, formula = PROP_Medical ~ log(GDPC) + GINI)
 tidy(model6) %>% kable()
 summary(model6)
 ```
 
-Finally, Table 6 shows another attempt at exploring further. I tried to use these statistics of income inequality to model the proportion of a population that was isolated; the best model of which ended up being that of logging both GDP and the Gini index. The model indicates that for every increase in 1% in both GDP and the Gini index, the proportion will increase by ~.32, with a standard error of ~.15. Despite this, the model itself is barely statistically significant, and only accounts for ~22.9% of the variance in the data.
+Table 6 shows an attempt at exploring another aspect of the survey: the proportions of nation's populations that are medically isolated, as explained by income inequality. Interestingly, GDPC actually serves to be a better indicator for Medical facilitation, accounting for 4% more of the variance than that of basic GDP. This model indicates that for every increase in 1% of GDPC, the proportion is expected to decrease by .00063, and for every 1 unit increase in the Gini index, it will increase by .000044. This model only accounts for a little under 14% of the variance. In this specific instance, with the data I have, it is clear that the variance in the proportion's cannot be explained in a statistically significant fashion. 
+
+Table 7, $PROP\_Isolated=\beta_{0}+\beta_{1}log(GDP)+\beta_{2}log(GINI)+\epsilon_{i}$
+
+```{r}
+model7 <- lm(data = data, formula = PROP_Isolated ~ log(GDP) + log(GINI))
+tidy(model7) %>% kable()
+summary(model7)
+```
+
+Finally, Table 7 shows another attempt at exploring further. I tried to use these statistics of income inequality to model the proportion of a population that was isolated; the best model of which ended up being that of logging both GDP and the Gini index. The model indicates that for every increase in 1% in both GDP and the Gini index, the proportion will increase by ~.32, with a standard error of ~.15. Despite this, the model itself is barely statistically significant, and only accounts for ~22.9% of the variance in the data.
 
 # Discussion | Conclusion
 
-This analysis attempted to cover three different major areas within COVID reactions. To start, I hypothesized that 
+This analysis attempted to cover three different major areas within COVID reactions. To start, I hypothesized that income inequality (measured through GDP and the Gini index) would have a positive relationship on all of the following: infection risk to self or relatives, medical isolation status, and general isolation status. After analysis, I've found that only two of the three analyses have conclusive results. 
 
+For the case of the proportion of medical isolation, the data I have for income inequality was not able to produce statistically significant explanation for the variance in medical isolation, with a p-value greater than .05 and a somewhat low R-squared value. However, this was not the case for my other two areas of interest. Using logged GDP and the Gini index, I found a statistically significant model to conclude that there is a positive relationship between a nation's income inequality and the proportion of that nation's population that is either at risk themselves, or has close family/friends who are at risk of infection. This model accounts for almost 42% of the data's variance, as well as having a p-value of .0007. In addition, I was also able to conlude that there is a positive relationship between income inequality and the proportion of isolation, using a model logging both GDP and the Gini index that accounts for ~23% of variance and has a p-value of .0296. While the correlation is only moderate, the conclusion itself is very thought-provoking. These findings defend two out of my three hypotheses, and also makes sense given other sources understandings of the connection between inequality and the COVID-19 pandemic.
+
+Given more data, which I expect to come forward in the next few months with the pandemic slowing, I feel I could create much more accurate models to portray these relationships. I would hope to explore this problem more in-depth, hopefully utilizing other areas of risk within the pandemic, such as deaths, cases over time, etc. I also feel as though income inequality is not the only factor worth considering when it comes to the impact on this pandemic. Racial inequality is another huge problem across the globe that I believe plays a large part in reaction, especially now with vaccinations and freedoms becoming more open-ended. While the observations I found are on the smaller side, aI do believe that these findings are essential to understanding COVID as well as income inequality as a whole. Contemplating our past and our present is an important step in preparing the world for the future to come.
+ 
 # References
 
 World Bank, World Development Indicators. (2014). "GDP per capita (current US$)" [Data File]. Retrieved from https://data.worldbank.org/indicator/NY.GDP.PCAP.CD?view=chart
@@ -166,3 +202,4 @@ World Bank, World Development Indicators. (2014). "GDP per capita (current US$)"
 World Bank, World Development Indicators. (2014). "GINI index (World Bank estimate)" [Data File]. Retrieved from https://data.worldbank.org/indicator/SI.POV.GINI
 
 Yamada, Y., Ćepulić, DB., Coll-Martín, T. et al. COVIDiSTRESS Global Survey dataset on psychological and behavioural consequences of the COVID-19 outbreak. Sci Data 8, 3 (2021). https://doi.org/10.1038/s41597-020-00784-9
+
